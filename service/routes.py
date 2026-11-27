@@ -18,6 +18,7 @@
 """
 Product Store Service with UI
 """
+from decimal import Decimal
 from flask import jsonify, request, abort
 from flask import url_for  # noqa: F401 pylint: disable=unused-import
 from service.models import Product, Category
@@ -109,6 +110,9 @@ def listall_products():
     elif 'category' in request.args:
         category = Category[request.args['category']]
         products = Product.find_by_category(category)
+    elif 'price' in request.args:
+        price = Decimal(request.args['price'])
+        products = Product.find_by_price(price)
     else:
         products = Product.all()
     products = [ p.serialize() for p in products ]
@@ -118,7 +122,7 @@ def listall_products():
 # R E A D   A   P R O D U C T
 ######################################################################
 
-@app.route("/product/<int:id>", methods=["GET"])
+@app.route("/products/<int:id>", methods=["GET"])
 def read_product(id):
     app.logger.info("Request to Read a Product...")
     product = Product.find(id)
@@ -128,7 +132,7 @@ def read_product(id):
 # U P D A T E   A   P R O D U C T
 ######################################################################
 
-@app.route("/product/<int:id>", methods=["PUT"])
+@app.route("/products/<int:id>", methods=["PUT"])
 def update_product(id):
     app.logger.info("Request to update a Product...")
     check_content_type("application/json")
@@ -141,7 +145,7 @@ def update_product(id):
 # D E L E T E   A   P R O D U C T
 ######################################################################
 
-@app.route("/product/<int:id>", methods=["DELETE"])
+@app.route("/products/<int:id>", methods=["DELETE"])
 def delete_product(id):
     app.logger.info("Request to delete a Product...")
     product = Product.find(id)

@@ -27,7 +27,7 @@ import os
 import logging
 import unittest
 from decimal import Decimal
-from service.models import Product, Category, db
+from service.models import Product, Category, db, DataValidationError
 from service import app
 from tests.factories import ProductFactory
 
@@ -70,6 +70,18 @@ class TestProductModel(unittest.TestCase):
     #  T E S T   C A S E S
     ######################################################################
 
+    def test_healthcheck(self):
+        """It should return ok on healthcheck"""
+        response = app.test_client().get('/health')
+        self.assertEqual(200, response.status_code)
+        data = response.json
+        self.assertEqual(data['message'], 'OK')
+
+    def test_update_no_id(self):
+        """It should return error when updating with no id"""
+        product = Product()
+        self.assertRaises(DataValidationError, product.update)
+
     def test_create_a_product(self):
         """It should Create a product and assert that it exists"""
         product = Product(name="Fedora", description="A red hat", price=12.50, available=True, category=Category.CLOTHS)
@@ -100,6 +112,67 @@ class TestProductModel(unittest.TestCase):
         self.assertEqual(Decimal(new_product.price), product.price)
         self.assertEqual(new_product.available, product.available)
         self.assertEqual(new_product.category, product.category)
+    
+    def test_product_deserialize_invalid_type(self):
+        """It should return an error if an attribute is missing"""
+        data = "a string"
+        new = Product()
+        self.assertRaises(DataValidationError, new.deserialize, data)
+
+    def test_product_deserialize_missing_attribute(self):
+        """It should return an error if an attribute is missing"""
+        product = ProductFactory.build()
+        data = product.serialize()
+        del data['name']
+        new = Product()
+        self.assertRaises(DataValidationError, new.deserialize, data)
+
+    def test_product_deserialize_availability_not_bool(self):
+        """It should return an error if an availability is not bool"""
+        product = ProductFactory.build()
+        data = product.serialize()
+        data['available'] = 1
+        new = Product()
+        self.assertRaises(DataValidationError, new.deserialize, data)
+
+    def test_product_deserialize_invalid_category(self):
+        """It should return an error if category is invalid"""
+        product = ProductFactory.build()
+        data = product.serialize()
+        data['category'] = 'DUMMY'
+        new = Product()
+        self.assertRaises(DataValidationError, new.deserialize, data)
+
+    def test_find_price_using_string(self):
+        """It should accept find products by price using strings"""
+        products = Product.find_by_price('1.0')
+        self.assertIsNotNone(products)
+
+    def test_missing_content_type(self):
+        """It should return an error for invalid content types"""
+        response = app.test_client().post(f'/products')
+        self.assertEqual(response.status_code, 415)
+
+    def test_add_invalid_content_type(self):
+        """It should return an error for invalid content types"""
+        response = app.test_client().post(f'/products', 
+            headers={'Content-Type': 'text/html'})
+        self.assertEqual(response.status_code, 415)
+
+    def test_create_product(self):
+        """It should create a product"""
+
+        product = ProductFactory.build()
+        response = app.test_client().post('/products', json=product.serialize())
+        self.assertEqual(201, response.status_code)
+        products = Product.all()
+        self.assertEqual(1, len(products))
+        created_product = products[0]
+        self.assertEqual(created_product.name, product.name)
+        self.assertEqual(created_product.description, product.description)
+        self.assertEqual(Decimal(created_product.price), product.price)
+        self.assertEqual(created_product.available, product.available)
+        self.assertEqual(created_product.category, product.category)
 
     def test_read_product(self):
         """It should return a product from database"""
@@ -108,7 +181,7 @@ class TestProductModel(unittest.TestCase):
         product.create()
         self.assertIsNotNone(product.id)
 
-        response = app.test_client().get(f'/product/{product.id}')
+        response = app.test_client().get(f'/products/{product.id}')
         self.assertEqual(200, response.status_code)
         returned_product = response.json
         self.assertEqual(returned_product['name'], product.name)
@@ -117,7 +190,7 @@ class TestProductModel(unittest.TestCase):
         self.assertEqual(returned_product['available'], product.available)
         self.assertEqual(returned_product['category'], product.category.name)
 
-    def test_read_product(self):
+    def test_update_product(self):
         """It should update a product from database"""
 
         product = ProductFactory.build()
@@ -126,7 +199,7 @@ class TestProductModel(unittest.TestCase):
 
         updated_product = ProductFactory.build()
         updated_product.id = None
-        response = app.test_client().put(f'/product/{product.id}', json=updated_product.serialize())
+        response = app.test_client().put(f'/products/{product.id}', json=updated_product.serialize())
         self.assertEqual(200, response.status_code)
 
         product = Product.find(product.id)
@@ -143,7 +216,7 @@ class TestProductModel(unittest.TestCase):
         product.create()
         self.assertIsNotNone(product.id)
 
-        response = app.test_client().delete(f'/product/{product.id}')
+        response = app.test_client().delete(f'/products/{product.id}')
         self.assertEqual(204, response.status_code)
         self.assertIsNone(Product.find(product.id))
 
@@ -246,6 +319,34 @@ class TestProductModel(unittest.TestCase):
         self.assertEqual(len(by_category[category]), len(response.json))
 
         for expected_product, product in zip(by_category[category], response.json):
+            self.assertEqual(product['name'], expected_product.name)
+            self.assertEqual(product['description'], expected_product.description)
+            self.assertEqual(Decimal(product['price']), expected_product.price)
+            self.assertEqual(product['available'], expected_product.available)
+            self.assertEqual(product['category'], expected_product.category.name)
+
+    def test_list_products_by_price(self):
+        """It should list all products from database by price"""
+
+        products = []
+        by_price = {}
+        for i in range(5):
+            product = ProductFactory.build()
+            product.create()
+            products.append(product)
+            if product.price not in by_price:
+                by_price[product.price] = [product]
+            else:
+                by_price[product.price].append(product)
+
+        price = products[0].price
+        response = app.test_client().get(f'/products', query_string={
+            'price': price,
+        })
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(len(by_price[price]), len(response.json))
+
+        for expected_product, product in zip(by_price[price], response.json):
             self.assertEqual(product['name'], expected_product.name)
             self.assertEqual(product['description'], expected_product.description)
             self.assertEqual(Decimal(product['price']), expected_product.price)
