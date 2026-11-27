@@ -115,12 +115,13 @@ def listall_products():
         products = Product.find_by_price(price)
     else:
         products = Product.all()
-    products = [ p.serialize() for p in products ]
+    products = [p.serialize() for p in products]
     return jsonify(products), 200
 
 ######################################################################
 # R E A D   A   P R O D U C T
 ######################################################################
+
 
 @app.route("/products/<int:id>", methods=["GET"])
 def read_product(id):
@@ -128,9 +129,11 @@ def read_product(id):
     product = Product.find(id)
     return jsonify(product.serialize()), 200
 
+
 ######################################################################
 # U P D A T E   A   P R O D U C T
 ######################################################################
+
 
 @app.route("/products/<int:id>", methods=["PUT"])
 def update_product(id):
@@ -145,10 +148,10 @@ def update_product(id):
 # D E L E T E   A   P R O D U C T
 ######################################################################
 
+
 @app.route("/products/<int:id>", methods=["DELETE"])
 def delete_product(id):
     app.logger.info("Request to delete a Product...")
     product = Product.find(id)
     product.delete()
     return '', 204
-

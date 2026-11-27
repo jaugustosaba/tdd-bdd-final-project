@@ -230,7 +230,7 @@ class TestProductRoutes(TestCase):
 
         response = self.client.delete(f'{BASE_URL}/{product.id}')
         self.assertEqual(204, response.status_code)
-        
+
         response = self.client.get(f'{BASE_URL}')
         self.assertEqual(200, response.status_code)
         self.assertEqual([], response.json)
@@ -239,7 +239,7 @@ class TestProductRoutes(TestCase):
         """It should list all products from database"""
 
         products = []
-        for i in range(5):
+        for _ in range(5):
             product = ProductFactory.build()
             response = self.client.post(BASE_URL, json=product.serialize())
             self.assertEqual(201, response.status_code)
@@ -262,7 +262,7 @@ class TestProductRoutes(TestCase):
 
         products = []
         by_name = {}
-        for i in range(5):
+        for _ in range(5):
             product = ProductFactory.build()
             response = self.client.post(BASE_URL, json=product.serialize())
             self.assertEqual(201, response.status_code)
@@ -287,13 +287,12 @@ class TestProductRoutes(TestCase):
             self.assertEqual(product['available'], expected_product.available)
             self.assertEqual(product['category'], expected_product.category.name)
 
-
     def test_list_products_by_availability(self):
         """It should list all products from database by availability"""
 
         products = []
         by_availability = {}
-        for i in range(5):
+        for _ in range(5):
             product = ProductFactory.build()
             response = self.client.post(BASE_URL, json=product.serialize())
             self.assertEqual(201, response.status_code)
@@ -323,7 +322,7 @@ class TestProductRoutes(TestCase):
 
         products = []
         by_category = {}
-        for i in range(5):
+        for _ in range(5):
             product = ProductFactory.build()
             response = self.client.post(BASE_URL, json=product.serialize())
             self.assertEqual(201, response.status_code)
@@ -353,7 +352,7 @@ class TestProductRoutes(TestCase):
 
         products = []
         by_price = {}
-        for i in range(5):
+        for _ in range(5):
             product = ProductFactory.build()
             response = self.client.post(BASE_URL, json=product.serialize())
             self.assertEqual(201, response.status_code)
@@ -365,7 +364,7 @@ class TestProductRoutes(TestCase):
                 by_price[product.price].append(product)
 
         price = products[0].price
-        response = app.test_client().get(f'/products', query_string={
+        response = app.test_client().get('/products', query_string={
             'price': price,
         })
         self.assertEqual(200, response.status_code)

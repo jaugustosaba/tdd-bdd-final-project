@@ -105,7 +105,7 @@ class TestProductModel(unittest.TestCase):
         self.assertEqual(Decimal(new_product.price), product.price)
         self.assertEqual(new_product.available, product.available)
         self.assertEqual(new_product.category, product.category)
-    
+
     def test_product_deserialize_invalid_type(self):
         """It should return an error if an attribute is missing"""
         data = "a string"
@@ -163,7 +163,7 @@ class TestProductModel(unittest.TestCase):
         self.assertEqual(Decimal(product2.price), product.price)
         self.assertEqual(product2.available, product.available)
         self.assertEqual(product2.category, product.category)
-    
+
     def test_delete_product(self):
         """It should delete a product"""
         product = ProductFactory.build()
@@ -190,7 +190,7 @@ class TestProductModel(unittest.TestCase):
         """It should list all products"""
 
         products = []
-        for i in range(5):
+        for _ in range(5):
             product = ProductFactory.build()
             product.create()
             products.append(product)
@@ -208,7 +208,7 @@ class TestProductModel(unittest.TestCase):
         """It should list all products by name"""
         products = []
         by_name = {}
-        for i in range(5):
+        for _ in range(5):
             product = ProductFactory.build()
             product.create()
             products.append(product)
@@ -227,12 +227,11 @@ class TestProductModel(unittest.TestCase):
             self.assertEqual(found.available, product.available)
             self.assertEqual(found.category, product.category)
 
-
-    def find_by_availability(self):
+    def test_find_by_availability(self):
         """It should find all products by availability"""
         products = []
         by_availability = {}
-        for i in range(5):
+        for _ in range(5):
             product = ProductFactory.build()
             product.create()
             products.append(product)
@@ -240,22 +239,22 @@ class TestProductModel(unittest.TestCase):
                 by_availability[product.available] = [product]
             else:
                 by_availability[product.available].append(product)
-        
+
         available = products[0].available
-        found_products = list(Product.find_by_availability(availability))
+        found_products = list(Product.find_by_availability(available))
         self.assertEqual(len(by_availability[available]), len(found_products))
-        for found, product in zip(by_availability[available], products):
+        for found, product in zip(by_availability[available], found_products):
             self.assertEqual(found.name, product.name)
             self.assertEqual(found.description, product.description)
             self.assertEqual(found.price, product.price)
             self.assertEqual(found.available, product.available)
             self.assertEqual(found.category, product.category)
 
-    def find_by_category(self):
+    def test_find_by_category(self):
         """It should list all products by category"""
         products = []
         by_category = {}
-        for i in range(5):
+        for _ in range(5):
             product = ProductFactory.build()
             product.create()
             products.append(product)
@@ -267,7 +266,7 @@ class TestProductModel(unittest.TestCase):
         category = products[0].category
         found_products = list(Product.find_by_category(category))
         self.assertEqual(len(by_category[category]), len(found_products))
-        for found, product in zip(by_category[category], products):
+        for found, product in zip(by_category[category], found_products):
             self.assertEqual(found.name, product.name)
             self.assertEqual(found.description, product.description)
             self.assertEqual(found.price, product.price)
@@ -278,7 +277,7 @@ class TestProductModel(unittest.TestCase):
         """It should find products by price"""
         products = []
         by_price = {}
-        for i in range(5):
+        for _ in range(5):
             product = ProductFactory.build()
             product.create()
             products.append(product)

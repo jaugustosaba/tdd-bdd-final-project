@@ -47,6 +47,10 @@ def step_impl(context):
     # load the database with new products
     #
     for row in context.table:
-        #
-        # ADD YOUR CODE HERE TO CREATE PRODUCTS VIA THE REST API
-        #
+        requests.post(f"{context.base_url}", json={
+            'name': row.name,
+            'description': row.description,
+            'price': row.price,
+            'available': row.available,
+            'category': row.category,
+        })
