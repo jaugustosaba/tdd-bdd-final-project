@@ -158,6 +158,7 @@ class TestProductModel(unittest.TestCase):
         self.assertEqual(len(products), 1)
         # Check that it matches the original product
         product = products[0]
+        self.assertEqual(product2.id, product.id)
         self.assertEqual(product2.name, product.name)
         self.assertEqual(product2.description, product.description)
         self.assertEqual(Decimal(product2.price), product.price)
@@ -188,6 +189,7 @@ class TestProductModel(unittest.TestCase):
 
     def test_list_all(self):
         """It should list all products"""
+        self.assertEqual(0, len(Product.all()))
 
         products = []
         for _ in range(5):
@@ -206,6 +208,8 @@ class TestProductModel(unittest.TestCase):
 
     def test_find_by_name(self):
         """It should list all products by name"""
+        self.assertEqual(0, len(Product.all()))
+
         products = []
         by_name = {}
         for _ in range(5):
@@ -229,6 +233,8 @@ class TestProductModel(unittest.TestCase):
 
     def test_find_by_availability(self):
         """It should find all products by availability"""
+        self.assertEqual(0, len(Product.all()))
+
         products = []
         by_availability = {}
         for _ in range(5):
@@ -252,6 +258,8 @@ class TestProductModel(unittest.TestCase):
 
     def test_find_by_category(self):
         """It should list all products by category"""
+        self.assertEqual(0, len(Product.all()))
+
         products = []
         by_category = {}
         for _ in range(5):
@@ -275,6 +283,8 @@ class TestProductModel(unittest.TestCase):
 
     def test_find_by_price(self):
         """It should find products by price"""
+        self.assertEqual(0, len(Product.all()))
+        
         products = []
         by_price = {}
         for _ in range(5):

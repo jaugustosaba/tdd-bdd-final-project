@@ -51,6 +51,6 @@ def step_impl(context):
             'name': row['name'],
             'description': row['description'],
             'price': row['price'],
-            'available': row['available'],
+            'available': bool(row['available']),
             'category': row['category'],
         })

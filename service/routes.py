@@ -130,8 +130,10 @@ def listall_products():
 
 @app.route("/products/<int:id>", methods=["GET"])
 def read_product(id):
-    app.logger.info("Request to Read a Product...")
+    app.logger.info(f"Request to Read a Product: id={id}")
     product = Product.find(id)
+    if product is None:
+        return jsonify({"message": "Not Found"}), 404
     return jsonify(product.serialize()), 200
 
 
@@ -145,6 +147,8 @@ def update_product(id):
     app.logger.info("Request to update a Product...")
     check_content_type("application/json")
     product = Product.find(id)
+    if product is None:
+        return jsonify({"message": "Not Found"}), 404
     product.deserialize(request.json)
     product.update()
     return jsonify(product.serialize()), 200
@@ -158,5 +162,7 @@ def update_product(id):
 def delete_product(id):
     app.logger.info("Request to delete a Product...")
     product = Product.find(id)
+    if product is None:
+        return jsonify({"message": "Not Found"}), 404
     product.delete()
     return '', 204

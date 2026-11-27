@@ -196,6 +196,9 @@ class TestProductRoutes(TestCase):
         self.assertEqual(returned_product['available'], product.available)
         self.assertEqual(returned_product['category'], product.category.name)
 
+        response = self.client.get(f'{BASE_URL}/1001')
+        self.assertEqual(404, response.status_code)
+
     def test_update_product(self):
         """It should update a product from database"""
 
@@ -209,11 +212,8 @@ class TestProductRoutes(TestCase):
         response = self.client.put(f'{BASE_URL}/{id}', json=updated_product.serialize())
         self.assertEqual(200, response.status_code)
 
-        response = self.client.get(f'{BASE_URL}')
-        self.assertEqual(200, response.status_code)
-
         product = Product()
-        product.deserialize(response.json[0])
+        product.deserialize(response.json)
         self.assertEqual(updated_product.name, product.name)
         self.assertEqual(updated_product.description, product.description)
         self.assertEqual(Decimal(updated_product.price), product.price)
@@ -222,6 +222,9 @@ class TestProductRoutes(TestCase):
 
     def test_delete_product(self):
         """It should delete a product from database"""
+        response = self.client.get(f'{BASE_URL}')
+        self.assertEqual(200, response.status_code)
+        n = len(response.json)
 
         product = ProductFactory.build()
         response = self.client.post(BASE_URL, json=product.serialize())
@@ -233,7 +236,12 @@ class TestProductRoutes(TestCase):
 
         response = self.client.get(f'{BASE_URL}')
         self.assertEqual(200, response.status_code)
-        self.assertEqual([], response.json)
+        m = len(response.json)
+        self.assertEqual(n-1, m)
+
+        response = self.client.delete(f'{BASE_URL}/1001')
+        self.assertEqual(404, response.status_code)
+
 
     def test_list_products(self):
         """It should list all products from database"""
