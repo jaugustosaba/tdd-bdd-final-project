@@ -70,13 +70,6 @@ class TestProductModel(unittest.TestCase):
     #  T E S T   C A S E S
     ######################################################################
 
-    def test_healthcheck(self):
-        """It should return ok on healthcheck"""
-        response = app.test_client().get('/health')
-        self.assertEqual(200, response.status_code)
-        data = response.json
-        self.assertEqual(data['message'], 'OK')
-
     def test_update_no_id(self):
         """It should return error when updating with no id"""
         product = Product()
@@ -148,31 +141,36 @@ class TestProductModel(unittest.TestCase):
         products = Product.find_by_price('1.0')
         self.assertIsNotNone(products)
 
-    def test_missing_content_type(self):
-        """It should return an error for invalid content types"""
-        response = app.test_client().post(f'/products')
-        self.assertEqual(response.status_code, 415)
-
-    def test_add_invalid_content_type(self):
-        """It should return an error for invalid content types"""
-        response = app.test_client().post(f'/products', 
-            headers={'Content-Type': 'text/html'})
-        self.assertEqual(response.status_code, 415)
-
-    def test_create_product(self):
-        """It should create a product"""
-
+    def test_update_product(self):
+        """It should update a product"""
         product = ProductFactory.build()
-        response = app.test_client().post('/products', json=product.serialize())
-        self.assertEqual(201, response.status_code)
+        product.create()
+
+        product2 = ProductFactory.build()
+        product.name = product2.name
+        product.description = product2.description
+        product.price = product2.price
+        product.available = product2.available
+        product.category = product2.category
+        product.update()
+
         products = Product.all()
-        self.assertEqual(1, len(products))
-        created_product = products[0]
-        self.assertEqual(created_product.name, product.name)
-        self.assertEqual(created_product.description, product.description)
-        self.assertEqual(Decimal(created_product.price), product.price)
-        self.assertEqual(created_product.available, product.available)
-        self.assertEqual(created_product.category, product.category)
+        self.assertEqual(len(products), 1)
+        # Check that it matches the original product
+        product = products[0]
+        self.assertEqual(product2.name, product.name)
+        self.assertEqual(product2.description, product.description)
+        self.assertEqual(Decimal(product2.price), product.price)
+        self.assertEqual(product2.available, product.available)
+        self.assertEqual(product2.category, product.category)
+    
+    def test_delete_product(self):
+        """It should delete a product"""
+        product = ProductFactory.build()
+        product.create()
+        self.assertEqual(1, len(Product.all()))
+        product.delete()
+        self.assertEqual(0, len(Product.all()))
 
     def test_read_product(self):
         """It should return a product from database"""
@@ -180,48 +178,16 @@ class TestProductModel(unittest.TestCase):
         product = ProductFactory.build()
         product.create()
         self.assertIsNotNone(product.id)
+        found = Product.find(product.id)
+        self.assertIsNotNone(found)
+        self.assertEqual(found.name, product.name)
+        self.assertEqual(found.description, product.description)
+        self.assertEqual(found.price, product.price)
+        self.assertEqual(found.available, product.available)
+        self.assertEqual(found.category, product.category)
 
-        response = app.test_client().get(f'/products/{product.id}')
-        self.assertEqual(200, response.status_code)
-        returned_product = response.json
-        self.assertEqual(returned_product['name'], product.name)
-        self.assertEqual(returned_product['description'], product.description)
-        self.assertEqual(Decimal(returned_product['price']), product.price)
-        self.assertEqual(returned_product['available'], product.available)
-        self.assertEqual(returned_product['category'], product.category.name)
-
-    def test_update_product(self):
-        """It should update a product from database"""
-
-        product = ProductFactory.build()
-        product.create()
-        self.assertIsNotNone(product.id)
-
-        updated_product = ProductFactory.build()
-        updated_product.id = None
-        response = app.test_client().put(f'/products/{product.id}', json=updated_product.serialize())
-        self.assertEqual(200, response.status_code)
-
-        product = Product.find(product.id)
-        self.assertEqual(updated_product.name, product.name)
-        self.assertEqual(updated_product.description, product.description)
-        self.assertEqual(Decimal(updated_product.price), product.price)
-        self.assertEqual(updated_product.available, product.available)
-        self.assertEqual(updated_product.category, product.category)
-
-    def test_delete_product(self):
-        """It should delete a product from database"""
-
-        product = ProductFactory.build()
-        product.create()
-        self.assertIsNotNone(product.id)
-
-        response = app.test_client().delete(f'/products/{product.id}')
-        self.assertEqual(204, response.status_code)
-        self.assertIsNone(Product.find(product.id))
-
-    def test_list_products(self):
-        """It should list all products from database"""
+    def test_list_all(self):
+        """It should list all products"""
 
         products = []
         for i in range(5):
@@ -229,20 +195,17 @@ class TestProductModel(unittest.TestCase):
             product.create()
             products.append(product)
 
-        response = app.test_client().get(f'/products')
-        self.assertEqual(200, response.status_code)
-        self.assertEqual(5, len(response.json))
+        found_products = Product.all()
+        self.assertEqual(len(products), len(found_products))
+        for found, product in zip(found_products, products):
+            self.assertEqual(found.name, product.name)
+            self.assertEqual(found.description, product.description)
+            self.assertEqual(found.price, product.price)
+            self.assertEqual(found.available, product.available)
+            self.assertEqual(found.category, product.category)
 
-        for expected_product, product in zip(products, response.json):
-            self.assertEqual(product['name'], expected_product.name)
-            self.assertEqual(product['description'], expected_product.description)
-            self.assertEqual(Decimal(product['price']), expected_product.price)
-            self.assertEqual(product['available'], expected_product.available)
-            self.assertEqual(product['category'], expected_product.category.name)
-
-    def test_list_products_by_name(self):
-        """It should list all products from database by name"""
-
+    def test_find_by_name(self):
+        """It should list all products by name"""
         products = []
         by_name = {}
         for i in range(5):
@@ -255,23 +218,18 @@ class TestProductModel(unittest.TestCase):
                 by_name[product.name].append(product)
 
         name = products[0].name
-        response = app.test_client().get(f'/products', query_string={
-            'name': name,
-        })
-        self.assertEqual(200, response.status_code)
-        self.assertEqual(len(by_name[name]), len(response.json))
-
-        for expected_product, product in zip(by_name[name], response.json):
-            self.assertEqual(product['name'], expected_product.name)
-            self.assertEqual(product['description'], expected_product.description)
-            self.assertEqual(Decimal(product['price']), expected_product.price)
-            self.assertEqual(product['available'], expected_product.available)
-            self.assertEqual(product['category'], expected_product.category.name)
+        found_products = list(Product.find_by_name(name))
+        self.assertEqual(len(by_name[name]), len(found_products))
+        for found, product in zip(by_name[name], products):
+            self.assertEqual(found.name, product.name)
+            self.assertEqual(found.description, product.description)
+            self.assertEqual(found.price, product.price)
+            self.assertEqual(found.available, product.available)
+            self.assertEqual(found.category, product.category)
 
 
-    def test_list_products_by_availability(self):
-        """It should list all products from database by availability"""
-
+    def find_by_availability(self):
+        """It should find all products by availability"""
         products = []
         by_availability = {}
         for i in range(5):
@@ -282,24 +240,19 @@ class TestProductModel(unittest.TestCase):
                 by_availability[product.available] = [product]
             else:
                 by_availability[product.available].append(product)
-
+        
         available = products[0].available
-        response = app.test_client().get(f'/products', query_string={
-            'availability': available,
-        })
-        self.assertEqual(200, response.status_code)
-        self.assertEqual(len(by_availability[available]), len(response.json))
+        found_products = list(Product.find_by_availability(availability))
+        self.assertEqual(len(by_availability[available]), len(found_products))
+        for found, product in zip(by_availability[available], products):
+            self.assertEqual(found.name, product.name)
+            self.assertEqual(found.description, product.description)
+            self.assertEqual(found.price, product.price)
+            self.assertEqual(found.available, product.available)
+            self.assertEqual(found.category, product.category)
 
-        for expected_product, product in zip(by_availability[available], response.json):
-            self.assertEqual(product['name'], expected_product.name)
-            self.assertEqual(product['description'], expected_product.description)
-            self.assertEqual(Decimal(product['price']), expected_product.price)
-            self.assertEqual(product['available'], expected_product.available)
-            self.assertEqual(product['category'], expected_product.category.name)
-
-    def test_list_products_by_category(self):
-        """It should list all products from database by availability"""
-
+    def find_by_category(self):
+        """It should list all products by category"""
         products = []
         by_category = {}
         for i in range(5):
@@ -312,22 +265,17 @@ class TestProductModel(unittest.TestCase):
                 by_category[product.category].append(product)
 
         category = products[0].category
-        response = app.test_client().get(f'/products', query_string={
-            'category': category.name,
-        })
-        self.assertEqual(200, response.status_code)
-        self.assertEqual(len(by_category[category]), len(response.json))
+        found_products = list(Product.find_by_category(category))
+        self.assertEqual(len(by_category[category]), len(found_products))
+        for found, product in zip(by_category[category], products):
+            self.assertEqual(found.name, product.name)
+            self.assertEqual(found.description, product.description)
+            self.assertEqual(found.price, product.price)
+            self.assertEqual(found.available, product.available)
+            self.assertEqual(found.category, product.category)
 
-        for expected_product, product in zip(by_category[category], response.json):
-            self.assertEqual(product['name'], expected_product.name)
-            self.assertEqual(product['description'], expected_product.description)
-            self.assertEqual(Decimal(product['price']), expected_product.price)
-            self.assertEqual(product['available'], expected_product.available)
-            self.assertEqual(product['category'], expected_product.category.name)
-
-    def test_list_products_by_price(self):
-        """It should list all products from database by price"""
-
+    def test_find_by_price(self):
+        """It should find products by price"""
         products = []
         by_price = {}
         for i in range(5):
@@ -340,15 +288,11 @@ class TestProductModel(unittest.TestCase):
                 by_price[product.price].append(product)
 
         price = products[0].price
-        response = app.test_client().get(f'/products', query_string={
-            'price': price,
-        })
-        self.assertEqual(200, response.status_code)
-        self.assertEqual(len(by_price[price]), len(response.json))
-
-        for expected_product, product in zip(by_price[price], response.json):
-            self.assertEqual(product['name'], expected_product.name)
-            self.assertEqual(product['description'], expected_product.description)
-            self.assertEqual(Decimal(product['price']), expected_product.price)
-            self.assertEqual(product['available'], expected_product.available)
-            self.assertEqual(product['category'], expected_product.category.name)
+        found_products = list(Product.find_by_price(price))
+        self.assertEqual(len(by_price[price]), len(found_products))
+        for found, product in zip(by_price[price], products):
+            self.assertEqual(found.name, product.name)
+            self.assertEqual(found.description, product.description)
+            self.assertEqual(found.price, product.price)
+            self.assertEqual(found.available, product.available)
+            self.assertEqual(found.category, product.category)
