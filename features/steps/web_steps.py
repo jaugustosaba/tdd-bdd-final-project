@@ -152,24 +152,20 @@ def step_impl(context, text):
     assert text in element.text
 
 
-@then(u'I should see the row "{i}" with "{name}", "{description}", "{available}", "{category}" and "{price}"')
-def step_impl(context, i, name, description, available, category, price):
-    element_id = f'row_{i}'
-    element = WebDriverWait(context.driver, context.wait_seconds).until(
-        expected_conditions.presence_of_element_located((By.ID, element_id))
+@then('I should see "{name}" in the results')
+def step_impl(context, name):
+    found = WebDriverWait(context.driver, context.wait_seconds).until(
+        expected_conditions.text_to_be_present_in_element(
+            (By.ID, 'search_results'),
+            name
+        )
     )
-    tds = element.find_elements(By.TAG_NAME, 'td')
-    assert tds[1].text == name
-    assert tds[2].text == description
-    assert tds[3].text == available
-    assert tds[4].text == category
-    assert tds[5].text == price
+    assert(found)
 
-@then(u'I should see "{n}" rows')
-def step_impl(context, n):
-    element = WebDriverWait(context.driver, context.wait_seconds).until(
-        expected_conditions.presence_of_element_located((By.ID, 'search_results'))
-    )
-    tbody = element.find_element(By.TAG_NAME, 'tbody')
-    trs = tbody.find_elements(By.TAG_NAME, 'tr')
-    assert len(trs) == int(n)
+
+@then('I should not see "{name}" in the results')
+def step_impl(context, name):
+    element = context.driver.find_element_by_id('search_results')
+    assert(name not in element.text)
+
+

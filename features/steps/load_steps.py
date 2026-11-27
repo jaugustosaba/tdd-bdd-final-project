@@ -47,10 +47,12 @@ def step_impl(context):
     # load the database with new products
     #
     for row in context.table:
-        requests.post(f"{context.base_url}", json={
-            'name': row['name'],
-            'description': row['description'],
-            'price': row['price'],
-            'available': bool(row['available']),
-            'category': row['category'],
-        })
+        payload = {
+            "name": row['name'],
+            "description": row['description'],
+            "price": row['price'],
+            "available": row['available'] in ['True', 'true', '1'],
+            "category": row['category']
+        }
+        context.resp = requests.post(rest_endpoint, json=payload)
+        assert context.resp.status_code == HTTP_201_CREATED
