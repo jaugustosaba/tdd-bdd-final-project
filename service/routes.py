@@ -20,7 +20,7 @@ Product Store Service with UI
 """
 from flask import jsonify, request, abort
 from flask import url_for  # noqa: F401 pylint: disable=unused-import
-from service.models import Product
+from service.models import Product, Category
 from service.common import status  # HTTP Status Codes
 from . import app
 
@@ -97,32 +97,54 @@ def create_products():
 ######################################################################
 # L I S T   A L L   P R O D U C T S
 ######################################################################
-
-#
-# PLACE YOUR CODE TO LIST ALL PRODUCTS HERE
-#
+@app.route("/products", methods=["GET"])
+def listall_products():
+    app.logger.info("Request to list all oroducts...")
+    products = None
+    if 'name' in request.args:
+        products = Product.find_by_name(request.args['name'])
+    elif 'availability' in request.args:
+        available = request.args['availability'] in ['True', 'true', '1']
+        products = Product.find_by_availability(available)
+    elif 'category' in request.args:
+        category = Category[request.args['category']]
+        products = Product.find_by_category(category)
+    else:
+        products = Product.all()
+    products = [ p.serialize() for p in products ]
+    return jsonify(products), 200
 
 ######################################################################
 # R E A D   A   P R O D U C T
 ######################################################################
 
-#
-# PLACE YOUR CODE HERE TO READ A PRODUCT
-#
+@app.route("/product/<int:id>", methods=["GET"])
+def read_product(id):
+    app.logger.info("Request to Read a Product...")
+    product = Product.find(id)
+    return jsonify(product.serialize()), 200
 
 ######################################################################
 # U P D A T E   A   P R O D U C T
 ######################################################################
 
-#
-# PLACE YOUR CODE TO UPDATE A PRODUCT HERE
-#
+@app.route("/product/<int:id>", methods=["PUT"])
+def update_product(id):
+    app.logger.info("Request to update a Product...")
+    check_content_type("application/json")
+    product = Product.find(id)
+    product.deserialize(request.json)
+    product.update()
+    return jsonify(product.serialize()), 200
 
 ######################################################################
 # D E L E T E   A   P R O D U C T
 ######################################################################
 
+@app.route("/product/<int:id>", methods=["DELETE"])
+def delete_product(id):
+    app.logger.info("Request to delete a Product...")
+    product = Product.find(id)
+    product.delete()
+    return '', 204
 
-#
-# PLACE YOUR CODE TO DELETE A PRODUCT HERE
-#

@@ -101,6 +101,153 @@ class TestProductModel(unittest.TestCase):
         self.assertEqual(new_product.available, product.available)
         self.assertEqual(new_product.category, product.category)
 
-    #
-    # ADD YOUR TEST CASES HERE
-    #
+    def test_read_product(self):
+        """It should return a product from database"""
+
+        product = ProductFactory.build()
+        product.create()
+        self.assertIsNotNone(product.id)
+
+        response = app.test_client().get(f'/product/{product.id}')
+        self.assertEqual(200, response.status_code)
+        returned_product = response.json
+        self.assertEqual(returned_product['name'], product.name)
+        self.assertEqual(returned_product['description'], product.description)
+        self.assertEqual(Decimal(returned_product['price']), product.price)
+        self.assertEqual(returned_product['available'], product.available)
+        self.assertEqual(returned_product['category'], product.category.name)
+
+    def test_read_product(self):
+        """It should update a product from database"""
+
+        product = ProductFactory.build()
+        product.create()
+        self.assertIsNotNone(product.id)
+
+        updated_product = ProductFactory.build()
+        updated_product.id = None
+        response = app.test_client().put(f'/product/{product.id}', json=updated_product.serialize())
+        self.assertEqual(200, response.status_code)
+
+        product = Product.find(product.id)
+        self.assertEqual(updated_product.name, product.name)
+        self.assertEqual(updated_product.description, product.description)
+        self.assertEqual(Decimal(updated_product.price), product.price)
+        self.assertEqual(updated_product.available, product.available)
+        self.assertEqual(updated_product.category, product.category)
+
+    def test_delete_product(self):
+        """It should delete a product from database"""
+
+        product = ProductFactory.build()
+        product.create()
+        self.assertIsNotNone(product.id)
+
+        response = app.test_client().delete(f'/product/{product.id}')
+        self.assertEqual(204, response.status_code)
+        self.assertIsNone(Product.find(product.id))
+
+    def test_list_products(self):
+        """It should list all products from database"""
+
+        products = []
+        for i in range(5):
+            product = ProductFactory.build()
+            product.create()
+            products.append(product)
+
+        response = app.test_client().get(f'/products')
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(5, len(response.json))
+
+        for expected_product, product in zip(products, response.json):
+            self.assertEqual(product['name'], expected_product.name)
+            self.assertEqual(product['description'], expected_product.description)
+            self.assertEqual(Decimal(product['price']), expected_product.price)
+            self.assertEqual(product['available'], expected_product.available)
+            self.assertEqual(product['category'], expected_product.category.name)
+
+    def test_list_products_by_name(self):
+        """It should list all products from database by name"""
+
+        products = []
+        by_name = {}
+        for i in range(5):
+            product = ProductFactory.build()
+            product.create()
+            products.append(product)
+            if product.name not in by_name:
+                by_name[product.name] = [product]
+            else:
+                by_name[product.name].append(product)
+
+        name = products[0].name
+        response = app.test_client().get(f'/products', query_string={
+            'name': name,
+        })
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(len(by_name[name]), len(response.json))
+
+        for expected_product, product in zip(by_name[name], response.json):
+            self.assertEqual(product['name'], expected_product.name)
+            self.assertEqual(product['description'], expected_product.description)
+            self.assertEqual(Decimal(product['price']), expected_product.price)
+            self.assertEqual(product['available'], expected_product.available)
+            self.assertEqual(product['category'], expected_product.category.name)
+
+
+    def test_list_products_by_availability(self):
+        """It should list all products from database by availability"""
+
+        products = []
+        by_availability = {}
+        for i in range(5):
+            product = ProductFactory.build()
+            product.create()
+            products.append(product)
+            if product.available not in by_availability:
+                by_availability[product.available] = [product]
+            else:
+                by_availability[product.available].append(product)
+
+        available = products[0].available
+        response = app.test_client().get(f'/products', query_string={
+            'availability': available,
+        })
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(len(by_availability[available]), len(response.json))
+
+        for expected_product, product in zip(by_availability[available], response.json):
+            self.assertEqual(product['name'], expected_product.name)
+            self.assertEqual(product['description'], expected_product.description)
+            self.assertEqual(Decimal(product['price']), expected_product.price)
+            self.assertEqual(product['available'], expected_product.available)
+            self.assertEqual(product['category'], expected_product.category.name)
+
+    def test_list_products_by_category(self):
+        """It should list all products from database by availability"""
+
+        products = []
+        by_category = {}
+        for i in range(5):
+            product = ProductFactory.build()
+            product.create()
+            products.append(product)
+            if product.category not in by_category:
+                by_category[product.category] = [product]
+            else:
+                by_category[product.category].append(product)
+
+        category = products[0].category
+        response = app.test_client().get(f'/products', query_string={
+            'category': category.name,
+        })
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(len(by_category[category]), len(response.json))
+
+        for expected_product, product in zip(by_category[category], response.json):
+            self.assertEqual(product['name'], expected_product.name)
+            self.assertEqual(product['description'], expected_product.description)
+            self.assertEqual(Decimal(product['price']), expected_product.price)
+            self.assertEqual(product['available'], expected_product.available)
+            self.assertEqual(product['category'], expected_product.category.name)
