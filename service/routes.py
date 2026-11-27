@@ -100,17 +100,22 @@ def create_products():
 ######################################################################
 @app.route("/products", methods=["GET"])
 def listall_products():
-    app.logger.info("Request to list all oroducts...")
+    app.logger.info("Request to list all products...")
     products = None
     if 'name' in request.args:
-        products = Product.find_by_name(request.args['name'])
-    elif 'availability' in request.args:
-        available = request.args['availability'] in ['True', 'true', '1']
+        name = request.args['name']
+        app.logger.info(f"listing by name: {name}")
+        products = Product.find_by_name(name)
+    elif 'available' in request.args:
+        available = request.args['available'] in ['True', 'true', '1']
+        app.logger.info(f"listing by available: {available}")
         products = Product.find_by_availability(available)
     elif 'category' in request.args:
+        app.logger.info("listing by category...")
         category = Category[request.args['category']]
         products = Product.find_by_category(category)
     elif 'price' in request.args:
+        app.logger.info("listing by price...")
         price = Decimal(request.args['price'])
         products = Product.find_by_price(price)
     else:

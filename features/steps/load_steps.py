@@ -48,9 +48,9 @@ def step_impl(context):
     #
     for row in context.table:
         requests.post(f"{context.base_url}", json={
-            'name': row.name,
-            'description': row.description,
-            'price': row.price,
-            'available': row.available,
-            'category': row.category,
+            'name': row['name'],
+            'description': row['description'],
+            'price': row['price'],
+            'available': row['available'],
+            'category': row['category'],
         })

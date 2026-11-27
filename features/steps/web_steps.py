@@ -132,3 +132,44 @@ def step_impl(context, element_name, text_string):
     )
     element.clear()
     element.send_keys(text_string)
+
+
+@when(u'I press the "{element_name}" button')
+def step_impl(context, element_name):
+    element_id = element_name.lower().replace(' ', '-') + '-btn'
+    element = WebDriverWait(context.driver, context.wait_seconds).until(
+        expected_conditions.presence_of_element_located((By.ID, element_id))
+    )
+    element.click()
+
+
+@then(u'I should see the message "{text}"')
+def step_impl(context, text):
+    element_id = 'flash_message'
+    element = WebDriverWait(context.driver, context.wait_seconds).until(
+        expected_conditions.presence_of_element_located((By.ID, element_id))
+    )
+    assert text in element.text
+
+
+@then(u'I should see the row "{i}" with "{name}", "{description}", "{available}", "{category}" and "{price}"')
+def step_impl(context, i, name, description, available, category, price):
+    element_id = f'row_{i}'
+    element = WebDriverWait(context.driver, context.wait_seconds).until(
+        expected_conditions.presence_of_element_located((By.ID, element_id))
+    )
+    tds = element.find_elements(By.TAG_NAME, 'td')
+    assert tds[1].text == name
+    assert tds[2].text == description
+    assert tds[3].text == available
+    assert tds[4].text == category
+    assert tds[5].text == price
+
+@then(u'I should see "{n}" rows')
+def step_impl(context, n):
+    element = WebDriverWait(context.driver, context.wait_seconds).until(
+        expected_conditions.presence_of_element_located((By.ID, 'search_results'))
+    )
+    tbody = element.find_element(By.TAG_NAME, 'tbody')
+    trs = tbody.find_elements(By.TAG_NAME, 'tr')
+    assert len(trs) == int(n)

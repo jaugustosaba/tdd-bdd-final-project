@@ -305,7 +305,7 @@ class TestProductRoutes(TestCase):
 
         available = products[0].available
         response = self.client.get(f'{BASE_URL}', query_string={
-            'availability': available,
+            'available': available,
         })
         self.assertEqual(200, response.status_code)
         self.assertEqual(len(by_availability[available]), len(response.json))
